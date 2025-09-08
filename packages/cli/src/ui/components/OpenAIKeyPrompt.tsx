@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 
@@ -13,18 +13,64 @@ interface OpenAIKeyPromptProps {
   onCancel: () => void;
 }
 
+interface Model {
+  id: string;
+  object: string;
+}
+
+interface ModelsResponse {
+  data: Model[];
+}
+
 export function OpenAIKeyPrompt({
   onSubmit,
   onCancel,
 }: OpenAIKeyPromptProps): React.JSX.Element {
   const [apiKey, setApiKey] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
-  const [model, setModel] = useState('');
-  const [currentField, setCurrentField] = useState<
-    'apiKey' | 'baseUrl' | 'model'
-  >('apiKey');
+  const [models, setModels] = useState<Model[]>([]);
+  const [selectedModelIndex, setSelectedModelIndex] = useState(0);
+  const [currentField, setCurrentField] = useState<'apiKey' | 'model'>('apiKey');
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [modelError, setModelError] = useState<string | null>(null);
+  
+  const baseUrl = 'https://dekallm.cloudeka.ai/v1';
 
-  useInput((input, key) => {
+  const fetchModels = useCallback(async () => {
+    if (!apiKey.trim()) return;
+    
+    setLoadingModels(true);
+    setModelError(null);
+    
+    try {
+      const response = await fetch(`${baseUrl}/models`, {
+        headers: {
+          'Authorization': `Bearer ${apiKey.trim()}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data: ModelsResponse = await response.json();
+      setModels(data.data || []);
+      setSelectedModelIndex(0);
+    } catch (error) {
+      setModelError(error instanceof Error ? error.message : 'Failed to fetch models');
+      setModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  }, [apiKey, baseUrl]);
+
+  useEffect(() => {
+    if (currentField === 'model' && models.length === 0 && !loadingModels && !modelError) {
+      fetchModels();
+    }
+  }, [currentField, models.length, loadingModels, modelError, fetchModels]);
+
+  useInput((input: string, key: { escape?: boolean; tab?: boolean; upArrow?: boolean; downArrow?: boolean; backspace?: boolean; delete?: boolean }) => {
     // 过滤粘贴相关的控制序列
     let cleanInput = (input || '')
       // 过滤 ESC 开头的控制序列（如 \u001b[200~、\u001b[201~ 等）
@@ -39,16 +85,12 @@ export function OpenAIKeyPrompt({
     // 再过滤所有不可见字符（ASCII < 32，除了回车换行）
     cleanInput = cleanInput
       .split('')
-      .filter((ch) => ch.charCodeAt(0) >= 32)
+      .filter((ch: string) => ch.charCodeAt(0) >= 32)
       .join('');
 
     if (cleanInput.length > 0) {
       if (currentField === 'apiKey') {
-        setApiKey((prev) => prev + cleanInput);
-      } else if (currentField === 'baseUrl') {
-        setBaseUrl((prev) => prev + cleanInput);
-      } else if (currentField === 'model') {
-        setModel((prev) => prev + cleanInput);
+        setApiKey((prev: string) => prev + cleanInput);
       }
       return;
     }
@@ -56,18 +98,14 @@ export function OpenAIKeyPrompt({
     // 检查是否是 Enter 键（通过检查输入是否包含换行符）
     if (input.includes('\n') || input.includes('\r')) {
       if (currentField === 'apiKey') {
-        // 允许空 API key 跳转到下一个字段，让用户稍后可以返回修改
-        setCurrentField('baseUrl');
-        return;
-      } else if (currentField === 'baseUrl') {
-        setCurrentField('model');
+        if (apiKey.trim()) {
+          setCurrentField('model');
+        }
         return;
       } else if (currentField === 'model') {
-        // 只有在提交时才检查 API key 是否为空
-        if (apiKey.trim()) {
-          onSubmit(apiKey.trim(), baseUrl.trim(), model.trim());
-        } else {
-          // 如果 API key 为空，回到 API key 字段
+        if (apiKey.trim() && models.length > 0) {
+          onSubmit(apiKey.trim(), baseUrl, models[selectedModelIndex].id);
+        } else if (!apiKey.trim()) {
           setCurrentField('apiKey');
         }
       }
@@ -82,30 +120,36 @@ export function OpenAIKeyPrompt({
     // Handle Tab key for field navigation
     if (key.tab) {
       if (currentField === 'apiKey') {
-        setCurrentField('baseUrl');
-      } else if (currentField === 'baseUrl') {
-        setCurrentField('model');
+        if (apiKey.trim()) {
+          setCurrentField('model');
+        }
       } else if (currentField === 'model') {
         setCurrentField('apiKey');
       }
       return;
     }
 
-    // Handle arrow keys for field navigation
+    // Handle arrow keys for field navigation and model selection
     if (key.upArrow) {
-      if (currentField === 'baseUrl') {
-        setCurrentField('apiKey');
-      } else if (currentField === 'model') {
-        setCurrentField('baseUrl');
+      if (currentField === 'model') {
+        if (models.length > 0) {
+          setSelectedModelIndex((prev: number) => (prev > 0 ? prev - 1 : models.length - 1));
+        } else {
+          setCurrentField('apiKey');
+        }
       }
       return;
     }
 
     if (key.downArrow) {
       if (currentField === 'apiKey') {
-        setCurrentField('baseUrl');
-      } else if (currentField === 'baseUrl') {
-        setCurrentField('model');
+        if (apiKey.trim()) {
+          setCurrentField('model');
+        }
+      } else if (currentField === 'model') {
+        if (models.length > 0) {
+          setSelectedModelIndex((prev: number) => (prev < models.length - 1 ? prev + 1 : 0));
+        }
       }
       return;
     }
@@ -113,11 +157,10 @@ export function OpenAIKeyPrompt({
     // Handle backspace - check both key.backspace and delete key
     if (key.backspace || key.delete) {
       if (currentField === 'apiKey') {
-        setApiKey((prev) => prev.slice(0, -1));
-      } else if (currentField === 'baseUrl') {
-        setBaseUrl((prev) => prev.slice(0, -1));
-      } else if (currentField === 'model') {
-        setModel((prev) => prev.slice(0, -1));
+        setApiKey((prev: string) => prev.slice(0, -1));
+        // Clear models when API key changes
+        setModels([]);
+        setModelError(null);
       }
       return;
     }
@@ -132,14 +175,11 @@ export function OpenAIKeyPrompt({
       width="100%"
     >
       <Text bold color={Colors.AccentBlue}>
-        OpenAI Configuration Required
+        DekaLLM Configuration Required
       </Text>
       <Box marginTop={1}>
         <Text>
-          Please enter your OpenAI configuration. You can get an API key from{' '}
-          <Text color={Colors.AccentBlue}>
-            https://platform.openai.com/api-keys
-          </Text>
+          Please enter your DekaLLM configuration.
         </Text>
       </Box>
       <Box marginTop={1} flexDirection="row">
@@ -153,21 +193,18 @@ export function OpenAIKeyPrompt({
         <Box flexGrow={1}>
           <Text>
             {currentField === 'apiKey' ? '> ' : '  '}
-            {apiKey || ' '}
+            {apiKey ? '*'.repeat(apiKey.length) : ' '}
           </Text>
         </Box>
       </Box>
       <Box marginTop={1} flexDirection="row">
         <Box width={12}>
-          <Text
-            color={currentField === 'baseUrl' ? Colors.AccentBlue : Colors.Gray}
-          >
+          <Text color={Colors.Gray}>
             Base URL:
           </Text>
         </Box>
         <Box flexGrow={1}>
-          <Text>
-            {currentField === 'baseUrl' ? '> ' : '  '}
+          <Text color={Colors.Gray}>
             {baseUrl}
           </Text>
         </Box>
@@ -181,15 +218,35 @@ export function OpenAIKeyPrompt({
           </Text>
         </Box>
         <Box flexGrow={1}>
-          <Text>
-            {currentField === 'model' ? '> ' : '  '}
-            {model}
-          </Text>
+          {currentField === 'model' ? (
+            <Box flexDirection="column">
+              {loadingModels ? (
+                <Text>Loading models...</Text>
+              ) : modelError ? (
+                <Text color={Colors.AccentRed}>Error: {modelError}</Text>
+              ) : models.length > 0 ? (
+                models.map((model: Model, index: number) => (
+                  <Text key={model.id} color={index === selectedModelIndex ? Colors.AccentBlue : Colors.Gray}>
+                    {index === selectedModelIndex ? '> ' : '  '}{model.id}
+                  </Text>
+                ))
+              ) : (
+                <Text color={Colors.Gray}>No models available</Text>
+              )}
+            </Box>
+          ) : (
+            <Text>
+              {models.length > 0 && selectedModelIndex < models.length ? models[selectedModelIndex].id : 'Select a model'}
+            </Text>
+          )}
         </Box>
       </Box>
       <Box marginTop={1}>
         <Text color={Colors.Gray}>
-          Press Enter to continue, Tab/↑↓ to navigate, Esc to cancel
+          {currentField === 'model' && models.length > 0 ? 
+            'Press ↑↓ to select model, Enter to submit, Tab to go back, Esc to cancel' :
+            'Press Enter to continue, Tab/↑↓ to navigate, Esc to cancel'
+          }
         </Text>
       </Box>
     </Box>

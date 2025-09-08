@@ -53,7 +53,7 @@
     "clean": "node scripts/clean.js"
   },
   "bin": {
-    "qwen": "bundle/gemini.js"
+    "dekacode": "bundle/gemini.js"
   },
   "files": [
     "bundle/",

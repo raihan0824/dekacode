@@ -24,7 +24,7 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
       <Text color={Colors.Foreground}>
         2. Be specific for the best results.
       </Text>
-      {geminiMdFileCount === 0 && (
+      {/* {geminiMdFileCount === 0 && (
         <Text color={Colors.Foreground}>
           3. Create{' '}
           <Text bold color={Colors.AccentPurple}>
@@ -32,7 +32,7 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
           </Text>{' '}
           files to customize your interactions with Qwen Code.
         </Text>
-      )}
+      )} */}
       <Text color={Colors.Foreground}>
         {geminiMdFileCount === 0 ? '4.' : '3.'}{' '}
         <Text bold color={Colors.AccentPurple}>
