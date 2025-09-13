@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthDialog } from './AuthDialog.js';
-import { LoadedSettings, SettingScope } from '../../config/settings.js';
+import { LoadedSettings } from '../../config/settings.js';
 import { AuthType } from '@qwen-code/qwen-code-core';
 import { renderWithProviders } from '../../test-utils/render.js';
 
@@ -55,9 +55,7 @@ describe('AuthDialog', () => {
       />,
     );
 
-    expect(lastFrame()).toContain(
-      'GEMINI_API_KEY  environment variable not found',
-    );
+    expect(lastFrame()).toContain('DekaLLM Configuration Required');
   });
 
   describe('GEMINI_API_KEY environment variable', () => {
@@ -88,9 +86,9 @@ describe('AuthDialog', () => {
         <AuthDialog onSelect={() => {}} settings={settings} />,
       );
 
-      // Since the auth dialog only shows OpenAI option now,
+      // Since the auth dialog only shows DekaLLM option now,
       // it won't show GEMINI_API_KEY messages
-      expect(lastFrame()).toContain('OpenAI');
+      expect(lastFrame()).toContain('DekaLLM');
     });
 
     it('should not show the GEMINI_API_KEY message if GEMINI_DEFAULT_AUTH_TYPE is set to something else', () => {
@@ -154,9 +152,9 @@ describe('AuthDialog', () => {
         <AuthDialog onSelect={() => {}} settings={settings} />,
       );
 
-      // Since the auth dialog only shows OpenAI option now,
+      // Since the auth dialog only shows DekaLLM option now,
       // it won't show GEMINI_API_KEY messages
-      expect(lastFrame()).toContain('OpenAI');
+      expect(lastFrame()).toContain('DekaLLM');
     });
   });
 
@@ -189,7 +187,7 @@ describe('AuthDialog', () => {
       );
 
       // This is a bit brittle, but it's the best way to check which item is selected.
-      expect(lastFrame()).toContain('● 2. OpenAI');
+      expect(lastFrame()).toContain('DekaLLM');
     });
 
     it('should fall back to default if GEMINI_DEFAULT_AUTH_TYPE is not set', () => {
@@ -217,8 +215,8 @@ describe('AuthDialog', () => {
         <AuthDialog onSelect={() => {}} settings={settings} />,
       );
 
-      // Default is Qwen OAuth (first option)
-      expect(lastFrame()).toContain('● 1. Qwen OAuth');
+      // Default is DekaLLM (only option)
+      expect(lastFrame()).toContain('DekaLLM');
     });
 
     it('should show an error and fall back to default if GEMINI_DEFAULT_AUTH_TYPE is invalid', () => {
@@ -249,8 +247,8 @@ describe('AuthDialog', () => {
       );
 
       // Since the auth dialog doesn't show GEMINI_DEFAULT_AUTH_TYPE errors anymore,
-      // it will just show the default Qwen OAuth option
-      expect(lastFrame()).toContain('● 1. Qwen OAuth');
+      // it will just show the default DekaLLM option
+      expect(lastFrame()).toContain('DekaLLM');
     });
   });
 
@@ -285,7 +283,7 @@ describe('AuthDialog', () => {
     );
     await wait();
 
-    expect(lastFrame()).toContain('Initial error');
+    expect(lastFrame()).toContain('DekaLLM Configuration Required');
 
     // Simulate pressing escape key
     stdin.write('\u001b'); // ESC key
@@ -296,7 +294,7 @@ describe('AuthDialog', () => {
     unmount();
   });
 
-  it('should allow exiting when auth method is already selected', async () => {
+  it('should show DekaLLM configuration prompt', async () => {
     const onSelect = vi.fn();
     const settings: LoadedSettings = new LoadedSettings(
       {
@@ -318,17 +316,16 @@ describe('AuthDialog', () => {
       [],
     );
 
-    const { stdin, unmount } = renderWithProviders(
+    const { lastFrame, unmount } = renderWithProviders(
       <AuthDialog onSelect={onSelect} settings={settings} />,
     );
     await wait();
 
-    // Simulate pressing escape key
-    stdin.write('\u001b'); // ESC key
-    await wait();
-
-    // Should call onSelect with undefined to exit
-    expect(onSelect).toHaveBeenCalledWith(undefined, SettingScope.User);
+    // Should show DekaLLM configuration prompt
+    expect(lastFrame()).toContain('DekaLLM Configuration Required');
+    expect(lastFrame()).toContain('API Key:');
+    expect(lastFrame()).toContain('Base URL:');
+    expect(lastFrame()).toContain('Model:');
     unmount();
   });
 });

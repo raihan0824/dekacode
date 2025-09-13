@@ -44,8 +44,6 @@ import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 import { validateNonInteractiveAuth } from './validateNonInterActiveAuth.js';
 import { detectAndEnableKittyProtocol } from './ui/utils/kittyProtocolDetector.js';
-import { checkForUpdates } from './ui/utils/updateCheck.js';
-import { handleAutoUpdate } from './utils/handleAutoUpdate.js';
 import { appEvents, AppEvent } from './utils/events.js';
 import { SettingsContext } from './ui/contexts/SettingsContext.js';
 
@@ -293,16 +291,6 @@ export async function main() {
       { exitOnCtrlC: false },
     );
 
-    checkForUpdates()
-      .then((info) => {
-        handleAutoUpdate(info, settings, config.getProjectRoot());
-      })
-      .catch((err) => {
-        // Silently ignore update check errors.
-        if (config.getDebugMode()) {
-          console.error('Update check failed:', err);
-        }
-      });
 
     registerCleanup(() => instance.unmount());
     return;

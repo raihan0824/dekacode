@@ -47,7 +47,6 @@ describe('SettingsUtils', () => {
         expect(categories).toHaveProperty('File Filtering');
         expect(categories).toHaveProperty('UI');
         expect(categories).toHaveProperty('Mode');
-        expect(categories).toHaveProperty('Updates');
       });
 
       it('should include key property in grouped settings', () => {
@@ -284,7 +283,6 @@ describe('SettingsUtils', () => {
 
         expect(allKeys).toContain('vimMode');
         expect(allKeys).toContain('ideMode');
-        expect(allKeys).toContain('disableAutoUpdate');
         expect(allKeys).toContain('showMemoryUsage');
         expect(allKeys).not.toContain('usageStatisticsEnabled');
         expect(allKeys).not.toContain('selectedAuthType');
@@ -331,7 +329,6 @@ describe('SettingsUtils', () => {
         expect(dialogKeys).toContain('hideWindowTitle');
         expect(dialogKeys).not.toContain('usageStatisticsEnabled');
         expect(dialogKeys).toContain('ideMode');
-        expect(dialogKeys).toContain('disableAutoUpdate');
 
         // Should include nested settings marked for dialog
         expect(dialogKeys).toContain('fileFiltering.respectGitIgnore');

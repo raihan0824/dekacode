@@ -267,15 +267,6 @@ export const SETTINGS_SCHEMA = {
     },
   },
 
-  disableAutoUpdate: {
-    type: 'boolean',
-    label: 'Disable Auto Update',
-    category: 'Updates',
-    requiresRestart: false,
-    default: false,
-    description: 'Disable automatic updates',
-    showInDialog: true,
-  },
 
   shouldUseNodePtyShell: {
     type: 'boolean',
@@ -432,15 +423,6 @@ export const SETTINGS_SCHEMA = {
     requiresRestart: false,
     default: ['DEBUG', 'DEBUG_MODE'] as string[],
     description: 'Environment variables to exclude from project context.',
-    showInDialog: false,
-  },
-  disableUpdateNag: {
-    type: 'boolean',
-    label: 'Disable Update Nag',
-    category: 'Updates',
-    requiresRestart: false,
-    default: false,
-    description: 'Disable update notification prompts.',
     showInDialog: false,
   },
   includeDirectories: {

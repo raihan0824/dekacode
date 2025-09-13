@@ -26,7 +26,6 @@ describe('SettingsSchema', () => {
         'accessibility',
         'checkpointing',
         'fileFiltering',
-        'disableAutoUpdate',
         'hideWindowTitle',
         'hideTips',
         'hideBanner',
@@ -46,7 +45,6 @@ describe('SettingsSchema', () => {
         'summarizeToolOutput',
         'dnsResolutionOrder',
         'excludedProjectEnvVars',
-        'disableUpdateNag',
         'includeDirectories',
         'loadMemoryFromIncludeDirectories',
         'model',
@@ -149,7 +147,6 @@ describe('SettingsSchema', () => {
       expect(categories).toContain('General');
       expect(categories).toContain('UI');
       expect(categories).toContain('Mode');
-      expect(categories).toContain('Updates');
       expect(categories).toContain('Accessibility');
       expect(categories).toContain('Checkpointing');
       expect(categories).toContain('File Filtering');
@@ -184,7 +181,6 @@ describe('SettingsSchema', () => {
       expect(SETTINGS_SCHEMA.showMemoryUsage.showInDialog).toBe(true);
       expect(SETTINGS_SCHEMA.vimMode.showInDialog).toBe(true);
       expect(SETTINGS_SCHEMA.ideMode.showInDialog).toBe(true);
-      expect(SETTINGS_SCHEMA.disableAutoUpdate.showInDialog).toBe(true);
       expect(SETTINGS_SCHEMA.hideWindowTitle.showInDialog).toBe(true);
       expect(SETTINGS_SCHEMA.hideTips.showInDialog).toBe(true);
       expect(SETTINGS_SCHEMA.hideBanner.showInDialog).toBe(true);
