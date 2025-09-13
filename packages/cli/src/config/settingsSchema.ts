@@ -631,6 +631,15 @@ export const SETTINGS_SCHEMA = {
     description: 'The model to use for OpenAI-compatible services.',
     showInDialog: false,
   },
+  enableWelcomeBack: {
+    type: 'boolean',
+    label: 'Enable Welcome Back',
+    category: 'General',
+    requiresRestart: false,
+    default: true,
+    description: 'Enable welcome back dialog when returning to a project with conversation history.',
+    showInDialog: true,
+  },
 } as const;
 
 type InferSettings<T extends SettingsSchema> = {
