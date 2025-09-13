@@ -604,6 +604,33 @@ export const SETTINGS_SCHEMA = {
     description: 'Skip the next speaker check.',
     showInDialog: true,
   },
+  openaiApiKey: {
+    type: 'string',
+    label: 'OpenAI API Key',
+    category: 'Authentication',
+    requiresRestart: false,
+    default: undefined as string | undefined,
+    description: 'The API key for OpenAI-compatible services.',
+    showInDialog: false,
+  },
+  openaiBaseUrl: {
+    type: 'string',
+    label: 'OpenAI Base URL',
+    category: 'Authentication',
+    requiresRestart: false,
+    default: undefined as string | undefined,
+    description: 'The base URL for OpenAI-compatible services.',
+    showInDialog: false,
+  },
+  openaiModel: {
+    type: 'string',
+    label: 'OpenAI Model',
+    category: 'Authentication',
+    requiresRestart: false,
+    default: undefined as string | undefined,
+    description: 'The model to use for OpenAI-compatible services.',
+    showInDialog: false,
+  },
 } as const;
 
 type InferSettings<T extends SettingsSchema> = {

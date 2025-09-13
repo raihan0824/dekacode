@@ -21,6 +21,7 @@ import {
   loadSettings,
   SettingScope,
 } from './config/settings.js';
+import { loadOpenAICredentialsFromSettings } from './config/auth.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { getUserStartupWarnings } from './utils/userStartupWarnings.js';
@@ -136,6 +137,9 @@ export async function main() {
   setupUnhandledRejectionHandler();
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
+
+  // Load stored OpenAI credentials from settings
+  loadOpenAICredentialsFromSettings(settings);
 
   await cleanupCheckpoints();
   if (settings.errors.length > 0) {

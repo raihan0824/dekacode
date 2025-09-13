@@ -5,7 +5,7 @@
  */
 
 import { AuthType } from '@qwen-code/qwen-code-core';
-import { loadEnvironment } from './settings.js';
+import { loadEnvironment, SettingScope } from './settings.js';
 
 export const validateAuthMethod = (authMethod: string): string | null => {
   loadEnvironment();
@@ -65,4 +65,31 @@ export const setOpenAIBaseUrl = (baseUrl: string): void => {
 
 export const setOpenAIModel = (model: string): void => {
   process.env['OPENAI_MODEL'] = model;
+};
+
+export const saveOpenAICredentialsToSettings = (
+  settings: any,
+  apiKey: string,
+  baseUrl: string,
+  model: string,
+): void => {
+  settings.setValue(SettingScope.User, 'openaiApiKey', apiKey);
+  settings.setValue(SettingScope.User, 'openaiBaseUrl', baseUrl);
+  settings.setValue(SettingScope.User, 'openaiModel', model);
+};
+
+export const loadOpenAICredentialsFromSettings = (settings: any): void => {
+  const apiKey = settings.merged.openaiApiKey;
+  const baseUrl = settings.merged.openaiBaseUrl;
+  const model = settings.merged.openaiModel;
+
+  if (apiKey) {
+    process.env['OPENAI_API_KEY'] = apiKey;
+  }
+  if (baseUrl) {
+    process.env['OPENAI_BASE_URL'] = baseUrl;
+  }
+  if (model) {
+    process.env['OPENAI_MODEL'] = model;
+  }
 };

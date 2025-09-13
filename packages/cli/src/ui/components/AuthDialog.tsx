@@ -12,6 +12,7 @@ import {
   setOpenAIApiKey,
   setOpenAIBaseUrl,
   setOpenAIModel,
+  saveOpenAICredentialsToSettings,
 } from '../../config/auth.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { Colors } from '../colors.js';
@@ -50,6 +51,10 @@ export function AuthDialog({
     setOpenAIApiKey(apiKey);
     setOpenAIBaseUrl(baseUrl);
     setOpenAIModel(model);
+    
+    // Save credentials to settings for persistence
+    saveOpenAICredentialsToSettings(settings, apiKey, baseUrl, model);
+    
     setShowOpenAIKeyPrompt(false);
     onSelect(AuthType.USE_OPENAI, SettingScope.User);
   };
