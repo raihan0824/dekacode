@@ -8,7 +8,14 @@ import AjvPkg from 'ajv';
 // Ajv's ESM/CJS interop: use 'any' for compatibility as recommended by Ajv docs
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const AjvClass = (AjvPkg as any).default || AjvPkg;
-const ajValidator = new AjvClass();
+const ajValidator = new AjvClass({
+  strict: false, // Allow unknown keywords like "optional"
+  allErrors: true, // Collect all validation errors
+  verbose: true, // Include more detailed error information
+  removeAdditional: false, // Don't remove additional properties
+  useDefaults: true, // Use default values from schema
+  coerceTypes: false, // Don't coerce types automatically
+});
 
 /**
  * Simple utility to validate objects against JSON Schemas
@@ -25,11 +32,18 @@ export class SchemaValidator {
     if (typeof data !== 'object' || data === null) {
       return 'Value of params must be an object';
     }
-    const validate = ajValidator.compile(schema);
-    const valid = validate(data);
-    if (!valid && validate.errors) {
-      return ajValidator.errorsText(validate.errors, { dataVar: 'params' });
+    
+    try {
+      const validate = ajValidator.compile(schema);
+      const valid = validate(data);
+      if (!valid && validate.errors) {
+        return ajValidator.errorsText(validate.errors, { dataVar: 'params' });
+      }
+      return null;
+    } catch (error) {
+      // Handle schema compilation errors (e.g., invalid schema format)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return `Schema validation error: ${errorMessage}`;
     }
-    return null;
   }
 }
