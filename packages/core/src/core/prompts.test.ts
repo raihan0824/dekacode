@@ -39,109 +39,109 @@ describe('Core System Prompt (prompts.ts)', () => {
     vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', undefined);
   });
 
-  it('should return the base prompt when no userMemory is provided', () => {
+  it('should return the base prompt when no userMemory is provided', async () => {
     vi.stubEnv('SANDBOX', undefined);
-    const prompt = getCoreSystemPrompt();
+    const prompt = await await getCoreSystemPrompt();
     expect(prompt).not.toContain('---\n\n'); // Separator should not be present
     expect(prompt).toContain('You are Qwen Code, an interactive CLI agent'); // Check for core content
     expect(prompt).toMatchSnapshot(); // Use snapshot for base prompt structure
   });
 
-  it('should return the base prompt when userMemory is empty string', () => {
+  it('should return the base prompt when userMemory is empty string', async () => {
     vi.stubEnv('SANDBOX', undefined);
-    const prompt = getCoreSystemPrompt('');
+    const prompt = await await getCoreSystemPrompt('');
     expect(prompt).not.toContain('---\n\n');
     expect(prompt).toContain('You are Qwen Code, an interactive CLI agent');
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should return the base prompt when userMemory is whitespace only', () => {
+  it('should return the base prompt when userMemory is whitespace only', async () => {
     vi.stubEnv('SANDBOX', undefined);
-    const prompt = getCoreSystemPrompt('   \n  \t ');
+    const prompt = await await getCoreSystemPrompt('   \n  \t ');
     expect(prompt).not.toContain('---\n\n');
     expect(prompt).toContain('You are Qwen Code, an interactive CLI agent');
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should append userMemory with separator when provided', () => {
+  it('should append userMemory with separator when provided', async () => {
     vi.stubEnv('SANDBOX', undefined);
     const memory = 'This is custom user memory.\nBe extra polite.';
     const expectedSuffix = `\n\n---\n\n${memory}`;
-    const prompt = getCoreSystemPrompt(memory);
+    const prompt = await await getCoreSystemPrompt(memory);
 
     expect(prompt.endsWith(expectedSuffix)).toBe(true);
     expect(prompt).toContain('You are Qwen Code, an interactive CLI agent'); // Ensure base prompt follows
     expect(prompt).toMatchSnapshot(); // Snapshot the combined prompt
   });
 
-  it('should include sandbox-specific instructions when SANDBOX env var is set', () => {
+  it('should include sandbox-specific instructions when SANDBOX env var is set', async () => {
     vi.stubEnv('SANDBOX', 'true'); // Generic sandbox value
-    const prompt = getCoreSystemPrompt();
+    const prompt = await await getCoreSystemPrompt();
     expect(prompt).toContain('# Sandbox');
     expect(prompt).not.toContain('# macOS Seatbelt');
     expect(prompt).not.toContain('# Outside of Sandbox');
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should include seatbelt-specific instructions when SANDBOX env var is "sandbox-exec"', () => {
+  it('should include seatbelt-specific instructions when SANDBOX env var is "sandbox-exec"', async () => {
     vi.stubEnv('SANDBOX', 'sandbox-exec');
-    const prompt = getCoreSystemPrompt();
+    const prompt = await getCoreSystemPrompt();
     expect(prompt).toContain('# macOS Seatbelt');
     expect(prompt).not.toContain('# Sandbox');
     expect(prompt).not.toContain('# Outside of Sandbox');
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should include non-sandbox instructions when SANDBOX env var is not set', () => {
+  it('should include non-sandbox instructions when SANDBOX env var is not set', async () => {
     vi.stubEnv('SANDBOX', undefined); // Ensure it's not set
-    const prompt = getCoreSystemPrompt();
+    const prompt = await getCoreSystemPrompt();
     expect(prompt).toContain('# Outside of Sandbox');
     expect(prompt).not.toContain('# Sandbox');
     expect(prompt).not.toContain('# macOS Seatbelt');
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should include git instructions when in a git repo', () => {
+  it('should include git instructions when in a git repo', async () => {
     vi.stubEnv('SANDBOX', undefined);
     vi.mocked(isGitRepository).mockReturnValue(true);
-    const prompt = getCoreSystemPrompt();
+    const prompt = await getCoreSystemPrompt();
     expect(prompt).toContain('# Git Repository');
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should not include git instructions when not in a git repo', () => {
+  it('should not include git instructions when not in a git repo', async () => {
     vi.stubEnv('SANDBOX', undefined);
     vi.mocked(isGitRepository).mockReturnValue(false);
-    const prompt = getCoreSystemPrompt();
+    const prompt = await getCoreSystemPrompt();
     expect(prompt).not.toContain('# Git Repository');
     expect(prompt).toMatchSnapshot();
   });
 
   describe('GEMINI_SYSTEM_MD environment variable', () => {
-    it('should use default prompt when GEMINI_SYSTEM_MD is "false"', () => {
+    it('should use default prompt when GEMINI_SYSTEM_MD is "false"', async () => {
       vi.stubEnv('GEMINI_SYSTEM_MD', 'false');
-      const prompt = getCoreSystemPrompt();
+      const prompt = await getCoreSystemPrompt();
       expect(fs.readFileSync).not.toHaveBeenCalled();
       expect(prompt).not.toContain('custom system prompt');
     });
 
-    it('should use default prompt when GEMINI_SYSTEM_MD is "0"', () => {
+    it('should use default prompt when GEMINI_SYSTEM_MD is "0"', async () => {
       vi.stubEnv('GEMINI_SYSTEM_MD', '0');
-      const prompt = getCoreSystemPrompt();
+      const prompt = await getCoreSystemPrompt();
       expect(fs.readFileSync).not.toHaveBeenCalled();
       expect(prompt).not.toContain('custom system prompt');
     });
 
-    it('should throw error if GEMINI_SYSTEM_MD points to a non-existent file', () => {
+    it('should throw error if GEMINI_SYSTEM_MD points to a non-existent file', async () => {
       const customPath = '/non/existent/path/system.md';
       vi.stubEnv('GEMINI_SYSTEM_MD', customPath);
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      expect(() => getCoreSystemPrompt()).toThrow(
+      await expect(getCoreSystemPrompt()).rejects.toThrow(
         `missing system prompt file '${path.resolve(customPath)}'`,
       );
     });
 
-    it('should read from default path when GEMINI_SYSTEM_MD is "true"', () => {
+    it('should read from default path when GEMINI_SYSTEM_MD is "true"', async () => {
       const defaultPath = path.resolve(
         path.join(GEMINI_CONFIG_DIR, 'system.md'),
       );
@@ -149,12 +149,12 @@ describe('Core System Prompt (prompts.ts)', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue('custom system prompt');
 
-      const prompt = getCoreSystemPrompt();
+      const prompt = await getCoreSystemPrompt();
       expect(fs.readFileSync).toHaveBeenCalledWith(defaultPath, 'utf8');
       expect(prompt).toBe('custom system prompt');
     });
 
-    it('should read from default path when GEMINI_SYSTEM_MD is "1"', () => {
+    it('should read from default path when GEMINI_SYSTEM_MD is "1"', async () => {
       const defaultPath = path.resolve(
         path.join(GEMINI_CONFIG_DIR, 'system.md'),
       );
@@ -162,23 +162,23 @@ describe('Core System Prompt (prompts.ts)', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue('custom system prompt');
 
-      const prompt = getCoreSystemPrompt();
+      const prompt = await getCoreSystemPrompt();
       expect(fs.readFileSync).toHaveBeenCalledWith(defaultPath, 'utf8');
       expect(prompt).toBe('custom system prompt');
     });
 
-    it('should read from custom path when GEMINI_SYSTEM_MD provides one, preserving case', () => {
+    it('should read from custom path when GEMINI_SYSTEM_MD provides one, preserving case', async () => {
       const customPath = path.resolve('/custom/path/SyStEm.Md');
       vi.stubEnv('GEMINI_SYSTEM_MD', customPath);
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue('custom system prompt');
 
-      const prompt = getCoreSystemPrompt();
+      const prompt = await getCoreSystemPrompt();
       expect(fs.readFileSync).toHaveBeenCalledWith(customPath, 'utf8');
       expect(prompt).toBe('custom system prompt');
     });
 
-    it('should expand tilde in custom path when GEMINI_SYSTEM_MD is set', () => {
+    it('should expand tilde in custom path when GEMINI_SYSTEM_MD is set', async () => {
       const homeDir = '/Users/test';
       vi.spyOn(os, 'homedir').mockReturnValue(homeDir);
       const customPath = '~/custom/system.md';
@@ -187,7 +187,7 @@ describe('Core System Prompt (prompts.ts)', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue('custom system prompt');
 
-      const prompt = getCoreSystemPrompt();
+      const prompt = await getCoreSystemPrompt();
       expect(fs.readFileSync).toHaveBeenCalledWith(
         path.resolve(expectedPath),
         'utf8',
@@ -197,72 +197,72 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   describe('GEMINI_WRITE_SYSTEM_MD environment variable', () => {
-    it('should not write to file when GEMINI_WRITE_SYSTEM_MD is "false"', () => {
+    it('should not write to file when GEMINI_WRITE_SYSTEM_MD is "false"', async () => {
       vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', 'false');
-      getCoreSystemPrompt();
+      await getCoreSystemPrompt();
       expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
-    it('should not write to file when GEMINI_WRITE_SYSTEM_MD is "0"', () => {
+    it('should not write to file when GEMINI_WRITE_SYSTEM_MD is "0"', async () => {
       vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', '0');
-      getCoreSystemPrompt();
+      await getCoreSystemPrompt();
       expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
-    it('should write to default path when GEMINI_WRITE_SYSTEM_MD is "true"', () => {
+    it('should write to default path when GEMINI_WRITE_SYSTEM_MD is "true"', async () => {
       const defaultPath = path.resolve(
         path.join(GEMINI_CONFIG_DIR, 'system.md'),
       );
       vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', 'true');
-      getCoreSystemPrompt();
+      await getCoreSystemPrompt();
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         defaultPath,
         expect.any(String),
       );
     });
 
-    it('should write to default path when GEMINI_WRITE_SYSTEM_MD is "1"', () => {
+    it('should write to default path when GEMINI_WRITE_SYSTEM_MD is "1"', async () => {
       const defaultPath = path.resolve(
         path.join(GEMINI_CONFIG_DIR, 'system.md'),
       );
       vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', '1');
-      getCoreSystemPrompt();
+      await getCoreSystemPrompt();
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         defaultPath,
         expect.any(String),
       );
     });
 
-    it('should write to custom path when GEMINI_WRITE_SYSTEM_MD provides one', () => {
+    it('should write to custom path when GEMINI_WRITE_SYSTEM_MD provides one', async () => {
       const customPath = path.resolve('/custom/path/system.md');
       vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', customPath);
-      getCoreSystemPrompt();
+      await getCoreSystemPrompt();
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         customPath,
         expect.any(String),
       );
     });
 
-    it('should expand tilde in custom path when GEMINI_WRITE_SYSTEM_MD is set', () => {
+    it('should expand tilde in custom path when GEMINI_WRITE_SYSTEM_MD is set', async () => {
       const homeDir = '/Users/test';
       vi.spyOn(os, 'homedir').mockReturnValue(homeDir);
       const customPath = '~/custom/system.md';
       const expectedPath = path.join(homeDir, 'custom/system.md');
       vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', customPath);
-      getCoreSystemPrompt();
+      await getCoreSystemPrompt();
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         path.resolve(expectedPath),
         expect.any(String),
       );
     });
 
-    it('should expand tilde in custom path when GEMINI_WRITE_SYSTEM_MD is just ~', () => {
+    it('should expand tilde in custom path when GEMINI_WRITE_SYSTEM_MD is just ~', async () => {
       const homeDir = '/Users/test';
       vi.spyOn(os, 'homedir').mockReturnValue(homeDir);
       const customPath = '~';
       const expectedPath = homeDir;
       vi.stubEnv('GEMINI_WRITE_SYSTEM_MD', customPath);
-      getCoreSystemPrompt();
+      await getCoreSystemPrompt();
       expect(fs.writeFileSync).toHaveBeenCalledWith(
         path.resolve(expectedPath),
         expect.any(String),
@@ -272,7 +272,7 @@ describe('Core System Prompt (prompts.ts)', () => {
 });
 
 describe('URL matching with trailing slash compatibility', () => {
-  it('should match URLs with and without trailing slash', () => {
+  it('should match URLs with and without trailing slash', async () => {
     const config = {
       systemPromptMappings: [
         {
@@ -298,7 +298,7 @@ describe('URL matching with trailing slash compatibility', () => {
       OPENAI_MODEL: 'gpt-4',
     };
 
-    const result1 = getCoreSystemPrompt(undefined, config);
+    const result1 = await getCoreSystemPrompt(undefined, config);
     expect(result1).toContain('Custom template for example.com');
 
     // Test case 2: Config has trailing slash, actual URL has no trailing slash
@@ -308,7 +308,7 @@ describe('URL matching with trailing slash compatibility', () => {
       OPENAI_MODEL: 'gpt-3.5-turbo',
     };
 
-    const result2 = getCoreSystemPrompt(undefined, config);
+    const result2 = await getCoreSystemPrompt(undefined, config);
     expect(result2).toContain('Custom template for openai.com');
 
     // Test case 3: No trailing slash in config, actual URL has no trailing slash
@@ -318,7 +318,7 @@ describe('URL matching with trailing slash compatibility', () => {
       OPENAI_MODEL: 'gpt-4',
     };
 
-    const result3 = getCoreSystemPrompt(undefined, config);
+    const result3 = await getCoreSystemPrompt(undefined, config);
     expect(result3).toContain('Custom template for example.com');
 
     // Test case 4: Config has trailing slash, actual URL has trailing slash
@@ -328,14 +328,14 @@ describe('URL matching with trailing slash compatibility', () => {
       OPENAI_MODEL: 'gpt-3.5-turbo',
     };
 
-    const result4 = getCoreSystemPrompt(undefined, config);
+    const result4 = await getCoreSystemPrompt(undefined, config);
     expect(result4).toContain('Custom template for openai.com');
 
     // Restore original environment variables
     process.env = originalEnv;
   });
 
-  it('should not match when URLs are different', () => {
+  it('should not match when URLs are different', async () => {
     const config = {
       systemPromptMappings: [
         {
@@ -355,7 +355,7 @@ describe('URL matching with trailing slash compatibility', () => {
       OPENAI_MODEL: 'gpt-4',
     };
 
-    const result = getCoreSystemPrompt(undefined, config);
+    const result = await getCoreSystemPrompt(undefined, config);
     // Should return default template, not contain custom template
     expect(result).not.toContain('Custom template for example.com');
 
@@ -365,10 +365,10 @@ describe('URL matching with trailing slash compatibility', () => {
 });
 
 describe('getCustomSystemPrompt', () => {
-  it('should handle string custom instruction without user memory', () => {
+  it('should handle string custom instruction without user memory', async () => {
     const customInstruction =
       'You are a helpful assistant specialized in code review.';
-    const result = getCustomSystemPrompt(customInstruction);
+    const result = await getCustomSystemPrompt(customInstruction);
 
     expect(result).toBe(
       'You are a helpful assistant specialized in code review.',
@@ -376,12 +376,12 @@ describe('getCustomSystemPrompt', () => {
     expect(result).not.toContain('---');
   });
 
-  it('should handle string custom instruction with user memory', () => {
+  it('should handle string custom instruction with user memory', async () => {
     const customInstruction =
       'You are a helpful assistant specialized in code review.';
     const userMemory =
       'Remember to be extra thorough.\nFocus on security issues.';
-    const result = getCustomSystemPrompt(customInstruction, userMemory);
+    const result = await getCustomSystemPrompt(customInstruction, userMemory);
 
     expect(result).toBe(
       'You are a helpful assistant specialized in code review.\n\n---\n\nRemember to be extra thorough.\nFocus on security issues.',
@@ -389,7 +389,7 @@ describe('getCustomSystemPrompt', () => {
     expect(result).toContain('---');
   });
 
-  it('should handle Content object with parts array and user memory', () => {
+  it('should handle Content object with parts array and user memory', async () => {
     const customInstruction = {
       parts: [
         { text: 'You are a code assistant. ' },
@@ -397,7 +397,7 @@ describe('getCustomSystemPrompt', () => {
       ],
     };
     const userMemory = 'User prefers TypeScript examples.';
-    const result = getCustomSystemPrompt(customInstruction, userMemory);
+    const result = await getCustomSystemPrompt(customInstruction, userMemory);
 
     expect(result).toBe(
       'You are a code assistant. Always provide examples.\n\n---\n\nUser prefers TypeScript examples.',

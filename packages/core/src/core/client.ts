@@ -65,6 +65,30 @@ function isThinkingSupported(model: string) {
 }
 
 /**
+ * Gets a reminder about available agents and the mandatory use of the task tool
+ */
+async function getAgentReminder(config: Config): Promise<string> {
+  try {
+    const subagentManager = config.getSubagentManager();
+    const agents = await subagentManager.listSubagents();
+    
+    if (agents.length === 0) {
+      return '';
+    }
+
+    const agentList = agents.map(agent => {
+      const level = agent.level === 'builtin' ? 'built-in' : agent.level;
+      return `- **${agent.name}** (${level}): ${agent.description}`;
+    }).join('\n');
+    
+    return `\n\n**REMINDER**: You have access to these specialized agents:\n\n${agentList}\n\nBefore starting any task, ALWAYS check if one of these agents is suitable and use the 'task' tool to delegate work to them. This is MANDATORY for file searches, code analysis, and any task that matches an agent's description.`;
+  } catch (error) {
+    // Silently fail if agent discovery fails
+    return '';
+  }
+}
+
+/**
  * Returns the index of the content after the fraction of the total characters in the history.
  *
  * Exported for testing purposes.
@@ -232,6 +256,9 @@ export class GeminiClient {
     const toolRegistry = this.config.getToolRegistry();
     const toolDeclarations = toolRegistry.getFunctionDeclarations();
     const tools: Tool[] = [{ functionDeclarations: toolDeclarations }];
+    // Get agent reminder
+    const agentReminder = await getAgentReminder(this.config);
+    
     const history: Content[] = [
       {
         role: 'user',
@@ -243,9 +270,21 @@ export class GeminiClient {
       },
       ...(extraHistory ?? []),
     ];
+
+    // Add agent reminder if available
+    if (agentReminder) {
+      history.push({
+        role: 'user',
+        parts: [{ text: agentReminder }],
+      });
+      history.push({
+        role: 'model',
+        parts: [{ text: 'Understood. I will always check for available agents and use the task tool to delegate work to them when appropriate.' }],
+      });
+    }
     try {
       const userMemory = this.config.getUserMemory();
-      const systemInstruction = getCoreSystemPrompt(userMemory);
+      const systemInstruction = await getCoreSystemPrompt(userMemory, undefined, this.config);
       const generateContentConfigWithThinking = isThinkingSupported(
         this.config.getModel(),
       )
@@ -485,7 +524,7 @@ export class GeminiClient {
       // Get all the content that would be sent in an API call
       const currentHistory = this.getChat().getHistory(true);
       const userMemory = this.config.getUserMemory();
-      const systemPrompt = getCoreSystemPrompt(userMemory);
+      const systemPrompt = await getCoreSystemPrompt(userMemory, undefined, this.config);
       const environment = await getEnvironmentContext(this.config);
 
       // Create a mock request content to count total tokens
@@ -547,6 +586,17 @@ export class GeminiClient {
       }
       this.lastSentIdeContext = newIdeContext;
       this.forceFullIdeContext = false;
+    }
+
+    // Add periodic agent reminder (every 2 turns)
+    if (this.sessionTurnCount % 2 === 0) {
+      const agentReminder = await getAgentReminder(this.config);
+      if (agentReminder) {
+        this.getChat().addHistory({
+          role: 'user',
+          parts: [{ text: agentReminder }],
+        });
+      }
     }
 
     const turn = new Turn(this.getChat(), prompt_id);
@@ -623,8 +673,8 @@ export class GeminiClient {
     try {
       const userMemory = this.config.getUserMemory();
       const finalSystemInstruction = config.systemInstruction
-        ? getCustomSystemPrompt(config.systemInstruction, userMemory)
-        : getCoreSystemPrompt(userMemory);
+        ? await getCustomSystemPrompt(config.systemInstruction, userMemory, this.config)
+        : await getCoreSystemPrompt(userMemory, undefined, this.config);
 
       const requestConfig = {
         abortSignal,
@@ -714,8 +764,8 @@ export class GeminiClient {
     try {
       const userMemory = this.config.getUserMemory();
       const finalSystemInstruction = generationConfig.systemInstruction
-        ? getCustomSystemPrompt(generationConfig.systemInstruction, userMemory)
-        : getCoreSystemPrompt(userMemory);
+        ? await getCustomSystemPrompt(generationConfig.systemInstruction, userMemory, this.config)
+        : await getCoreSystemPrompt(userMemory, undefined, this.config);
 
       const requestConfig: GenerateContentConfig = {
         abortSignal,

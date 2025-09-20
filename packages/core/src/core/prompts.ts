@@ -20,6 +20,7 @@ import { MemoryTool, GEMINI_CONFIG_DIR } from '../tools/memoryTool.js';
 import { TodoWriteTool } from '../tools/todoWrite.js';
 import { TaskTool } from '../tools/task.js';
 import { GenerateContentConfig } from '@google/genai';
+import { Config } from '../config/config.js';
 
 export interface ModelTemplateMapping {
   baseUrls?: string[];
@@ -29,6 +30,36 @@ export interface ModelTemplateMapping {
 
 export interface SystemPromptConfig {
   systemPromptMappings?: ModelTemplateMapping[];
+}
+
+/**
+ * Discovers available agents from .qwen/agents/ and ~/.qwen/agents/ directories
+ * and returns a formatted string describing their capabilities.
+ */
+async function discoverAvailableAgents(config?: Config): Promise<string> {
+  if (!config) {
+    return '';
+  }
+
+  try {
+    const subagentManager = config.getSubagentManager();
+    const agents = await subagentManager.listSubagents();
+    
+    if (agents.length === 0) {
+      return '';
+    }
+
+    const agentDescriptions = agents.map(agent => {
+      const level = agent.level === 'builtin' ? 'built-in' : agent.level;
+      return `- **${agent.name}** (${level}): ${agent.description}`;
+    }).join('\n');
+
+    return `\n\n# Available Specialized Agents\n\nYou have access to the following specialized agents that can be invoked using the '${TaskTool.Name}' tool:\n\n${agentDescriptions}\n\n## Agent Usage Guidelines\n\n**MANDATORY**: Before starting any task, ALWAYS check if one of the available agents above is suitable for the work. If a task matches an agent's description, you MUST use the '${TaskTool.Name}' tool to delegate the work to that specialized agent.\n\n**Benefits of using agents**:\n- Better results through specialized expertise\n- Reduced context usage and faster processing\n- More focused and efficient task completion\n\n**When to use agents**:\n- File searches and code analysis → Use 'general-purpose' agent\n- Any task that matches an agent's description → Use that specific agent\n- Complex multi-step tasks → Consider delegating to appropriate agents\n\n**CRITICAL**: Do NOT attempt to do the work yourself if a suitable agent exists. Always delegate to the appropriate agent first. The system will remind you of available agents periodically to ensure you don't forget to use them.`;
+  } catch (error) {
+    // Silently fail if agent discovery fails
+    console.warn('Failed to discover agents:', error);
+    return '';
+  }
 }
 
 /**
@@ -54,10 +85,11 @@ function urlMatches(urlArray: string[], targetUrl: string): boolean {
  * @param userMemory - User memory to append
  * @returns Processed custom system instruction with user memory appended
  */
-export function getCustomSystemPrompt(
+export async function getCustomSystemPrompt(
   customInstruction: GenerateContentConfig['systemInstruction'],
   userMemory?: string,
-): string {
+  qwenConfig?: Config,
+): Promise<string> {
   // Extract text from custom instruction
   let instructionText = '';
 
@@ -80,18 +112,22 @@ export function getCustomSystemPrompt(
   }
 
   // Append user memory using the same pattern as getCoreSystemPrompt
+  // Discover available agents and add them to the prompt
+  const agentsSection = await discoverAvailableAgents(qwenConfig);
+  
   const memorySuffix =
     userMemory && userMemory.trim().length > 0
       ? `\n\n---\n\n${userMemory.trim()}`
       : '';
 
-  return `${instructionText}${memorySuffix}`;
+  return `${instructionText}${agentsSection}${memorySuffix}`;
 }
 
-export function getCoreSystemPrompt(
+export async function getCoreSystemPrompt(
   userMemory?: string,
   config?: SystemPromptConfig,
-): string {
+  qwenConfig?: Config,
+): Promise<string> {
   // if GEMINI_SYSTEM_MD is set (and not 0|false), override system prompt from file
   // default path is .gemini/system.md but can be modified via custom path in GEMINI_SYSTEM_MD
   let systemMdEnabled = false;
@@ -169,6 +205,7 @@ You are Qwen Code, an interactive CLI agent developed by Alibaba Group, speciali
 
 # Core Mandates
 
+- **Agent-First Approach:** ALWAYS check for available specialized agents before starting any task. If a suitable agent exists, you MUST delegate the work to that agent using the '${TaskTool.Name}' tool. This is mandatory and takes priority over doing the work yourself.
 - **Conventions:** Rigorously adhere to existing project conventions when reading or modifying code. Analyze surrounding code, tests, and configuration first.
 - **Libraries/Frameworks:** NEVER assume a library/framework is available or appropriate. Verify its established usage within the project (check imports, configuration files like 'package.json', 'Cargo.toml', 'requirements.txt', 'build.gradle', etc., or observe neighboring files) before employing it.
 - **Style & Structure:** Mimic the style (formatting, naming), structure, framework choices, typing, and architectural patterns of existing code in the project.
@@ -285,7 +322,7 @@ IMPORTANT: Always use the ${TodoWriteTool.Name} tool to plan and track tasks thr
 - **Background Processes:** Use background processes (via \`&\`) for commands that are unlikely to stop on their own, e.g. \`node server.js &\`. If unsure, ask the user.
 - **Interactive Commands:** Try to avoid shell commands that are likely to require user interaction (e.g. \`git rebase -i\`). Use non-interactive versions of commands (e.g. \`npm init -y\` instead of \`npm init\`) when available, and otherwise remind the user that interactive shell commands are not supported and may cause hangs until canceled by the user.
 - **Task Management:** Use the '${TodoWriteTool.Name}' tool proactively for complex, multi-step tasks to track progress and provide visibility to users. This tool helps organize work systematically and ensures no requirements are missed.
-- **Subagent Delegation:** When doing file search, prefer to use the '${TaskTool.Name}' tool in order to reduce context usage. You should proactively use the '${TaskTool.Name}' tool with specialized agents when the task at hand matches the agent's description.
+- **Subagent Delegation:** ALWAYS check for available specialized agents before starting any task. Use the '${TaskTool.Name}' tool to delegate work to appropriate agents when available. This is MANDATORY for file searches, code analysis, and any task that matches an agent's description.
 - **Remembering Facts:** Use the '${MemoryTool.Name}' tool to remember specific, *user-related* facts or preferences when the user explicitly asks, or when they state a clear, concise piece of information that would help personalize or streamline *your future interactions with them* (e.g., preferred coding style, common project paths they use, personal tool aliases). This tool is for user-specific information that should persist across sessions. Do *not* use it for general project context or information. If unsure whether to save something, you can ask the user, "Should I remember that for you?"
 - **Respect User Confirmations:** Most tool calls (also denoted as 'function calls') will first require confirmation from the user, where they will either approve or cancel the function call. If a user cancels a function call, respect their choice and do _not_ try to make the function call again. It is okay to request the tool call again _only_ if the user requests that same tool call on a subsequent prompt. When a user cancels a function call, assume best intentions from the user and consider inquiring if they prefer any alternative paths forward.
 
@@ -513,12 +550,15 @@ Your core function is efficient and safe assistance. Balance extreme conciseness
     }
   }
 
+  // Discover available agents and add them to the prompt
+  const agentsSection = await discoverAvailableAgents(qwenConfig);
+  
   const memorySuffix =
     userMemory && userMemory.trim().length > 0
       ? `\n\n---\n\n${userMemory.trim()}`
       : '';
 
-  return `${basePrompt}${memorySuffix}`;
+  return `${basePrompt}${agentsSection}${memorySuffix}`;
 }
 
 /**

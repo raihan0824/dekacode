@@ -40,7 +40,8 @@ export async function getDirectoryContextString(
   return `${workingDirPreamble}
 Here is the folder structure of the current working directories:
 
-${folderStructure}`;
+${folderStructure}\n Remember to always delegate to the appropriate agent first.`
+;
 }
 
 /**
