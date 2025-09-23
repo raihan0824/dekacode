@@ -6,7 +6,7 @@ class SessionManager {
   constructor() {
     // Store sessions in memory with conversation history
     this.sessions = new Map();
-    this.sessionsDir = path.join(os.homedir(), '.gemini', 'sessions');
+    this.sessionsDir = path.join(os.homedir(), '.qwen', 'sessions');
     this.initSessionsDir();
   }
 

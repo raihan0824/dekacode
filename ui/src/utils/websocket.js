@@ -41,14 +41,14 @@ export function useWebSocket() {
         
         // If the config returns localhost but we're not on localhost, use current host but with API server port
         if (wsBaseUrl.includes('localhost') && !window.location.hostname.includes('localhost')) {
-          // console.warn('Config returned localhost, using current host with API server port instead');
+          console.warn('Config returned localhost, using current host with API server port instead');
           const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
           // For development, API server is typically on port 4008 when Vite is on 4009
           const apiPort = window.location.port === '4009' ? '4008' : window.location.port;
           wsBaseUrl = `${protocol}//${window.location.hostname}:${apiPort}`;
         }
       } catch (error) {
-        // console.warn('Could not fetch server config, falling back to current host with API server port');
+        console.warn('Could not fetch server config, falling back to current host with API server port');
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         // For development, API server is typically on port 4008 when Vite is on 4009
         const apiPort = window.location.port === '4009' ? '4008' : window.location.port;
@@ -69,7 +69,7 @@ export function useWebSocket() {
           const data = JSON.parse(event.data);
           setMessages(prev => [...prev, data]);
         } catch (error) {
-          // console.error('Error parsing WebSocket message:', error);
+          console.error('Error parsing WebSocket message:', error);
         }
       };
 
@@ -84,11 +84,11 @@ export function useWebSocket() {
       };
 
       websocket.onerror = (error) => {
-        // console.error('WebSocket error:', error);
+        console.error('WebSocket error:', error);
       };
 
     } catch (error) {
-      // console.error('Error creating WebSocket connection:', error);
+      console.error('Error creating WebSocket connection:', error);
     }
   };
 
@@ -96,7 +96,7 @@ export function useWebSocket() {
     if (ws && isConnected) {
       ws.send(JSON.stringify(message));
     } else {
-      // console.warn('WebSocket not connected');
+      console.warn('WebSocket not connected');
     }
   };
 

@@ -156,7 +156,7 @@ export const EnhancedMessageRenderer = ({ content, isDarkMode = true }) => {
           code: ({ node, inline, className, children, ...props }) => {
             if (inline) {
               return (
-                <code className="px-1.5 py-0.5 mx-0.5 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded text-xs font-mono">
+                <code className="px-1.5 py-0.5 bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded text-xs font-mono">
                   {children}
                 </code>
               );

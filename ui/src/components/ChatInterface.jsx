@@ -1035,9 +1035,9 @@ function ChatInterface({ selectedProject, selectedSession, ws, sendMessage, mess
   const [selectedModel, setSelectedModel] = useState(() => {
     try {
       const settings = JSON.parse(localStorage.getItem('gemini-tools-settings') || '{}');
-      return settings.selectedModel || 'qwen-2.5-72b-instruct';
+      return settings.selectedModel || 'qwen/qwen3-coder';
     } catch (e) {
-      return 'qwen-2.5-72b-instruct';
+      return 'qwen/qwen3-coder';
     }
   });
   const [isLoadingSessionMessages, setIsLoadingSessionMessages] = useState(false);
@@ -1377,10 +1377,10 @@ function ChatInterface({ selectedProject, selectedSession, ws, sendMessage, mess
       try {
         const settings = JSON.parse(localStorage.getItem('gemini-tools-settings') || '{}');
         setIsYoloMode(settings.skipPermissions || false);
-        setSelectedModel(settings.selectedModel || 'qwen-2.5-72b-instruct');
+        setSelectedModel(settings.selectedModel || 'qwen/qwen3-coder');
       } catch (e) {
         setIsYoloMode(false);
-        setSelectedModel('qwen-2.5-72b-instruct');
+        setSelectedModel('qwen/qwen3-coder');
       }
     };
     
@@ -2026,7 +2026,7 @@ function ChatInterface({ selectedProject, selectedSession, ws, sendMessage, mess
             allowedTools: settings.allowedTools || [],
             disallowedTools: settings.disallowedTools || [],
             skipPermissions: settings.skipPermissions || false,
-            selectedModel: settings.selectedModel || 'qwen-2.5-72b-instruct'
+            selectedModel: settings.selectedModel || 'qwen/qwen3-coder'
           };
         }
       } catch (error) {
@@ -2036,7 +2036,7 @@ function ChatInterface({ selectedProject, selectedSession, ws, sendMessage, mess
         allowedTools: [],
         disallowedTools: [],
         skipPermissions: false,
-        selectedModel: 'qwen-2.5-72b-instruct'
+        selectedModel: 'qwen/qwen3-coder'
       };
     };
 
@@ -2053,7 +2053,7 @@ function ChatInterface({ selectedProject, selectedSession, ws, sendMessage, mess
         resume: !!currentSessionId,
         toolsSettings: toolsSettings,
         permissionMode: permissionMode,
-        model: toolsSettings.selectedModel || 'qwen-2.5-72b-instruct',
+        model: toolsSettings.selectedModel || 'qwen/qwen3-coder',
         images: uploadedImages // Pass images to backend
       }
     });
